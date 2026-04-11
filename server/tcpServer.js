@@ -1,29 +1,167 @@
-console.log("Server file started");
-const net = require("net");
+const net = require('net');
+const fs = require('fs');
+const path = require('path');
 
 const PORT = 3000;
-const HOST = "0.0.0.0";
+const HOST = '0.0.0.0';
+
+const MAX_CLIENTS = 4;
+const TIMEOUT = 30000;
+
+let clients = [];
+let messages = [];
+
+const FILES_DIR = path.join(__dirname, '../files');
+const LOG_FILE = path.join(__dirname, '../logs/server.log');
+
+// siguro që folderët ekzistojnë
+if (!fs.existsSync(FILES_DIR)) fs.mkdirSync(FILES_DIR);
+if (!fs.existsSync(path.join(__dirname, '../logs'))) fs.mkdirSync(path.join(__dirname, '../logs'));
+
+function log(msg) {
+    const line = `[${new Date().toISOString()}] ${msg}\n`;
+    fs.appendFileSync(LOG_FILE, line);
+    console.log(msg);
+}
 
 const server = net.createServer((socket) => {
-  console.log("Client connected:", socket.remoteAddress);
 
-  socket.on("data", (data) => {
-    const message = data.toString();
-    console.log("Received:", message);
+    if (clients.length >= MAX_CLIENTS) {
+        socket.write("Server full\n");
+        socket.end();
+        return;
+    }
 
-    // përgjigje klientit
-    socket.write("Server received: " + message);
-  });
+    socket.setEncoding('utf8');
+    socket.role = 'user';
+    socket.lastActivity = Date.now();
 
-  socket.on("end", () => {
-    console.log("Client disconnected");
-  });
+    clients.push(socket);
 
-  socket.on("error", (err) => {
-    console.log("Error:", err.message);
-  });
+    log(`Client connected: ${socket.remoteAddress}`);
+
+    socket.write("Connected to server\n");
+
+    socket.on('data', (data) => {
+        const input = data.toString().trim();
+        socket.lastActivity = Date.now();
+
+        messages.push({ ip: socket.remoteAddress, msg: input });
+
+        // upload handling
+        if (input.startsWith('UPLOAD:')) {
+            const parts = input.split('|');
+            const filename = parts[1];
+            const content = parts.slice(2).join('|');
+
+            fs.writeFile(path.join(FILES_DIR, filename), content, (err) => {
+                if (err) return socket.write("Upload error\n");
+                socket.write("Upload successful\n");
+            });
+            return;
+        }
+
+        // broadcast
+        if (!input.startsWith('/')) {
+            broadcast(`${socket.remoteAddress}: ${input}`, socket);
+            return;
+        }
+
+        if (input === '/admin') {
+            socket.role = 'admin';
+            socket.write("You are admin\n");
+            return;
+        }
+
+        handleCommand(socket, input);
+    });
+
+    socket.on('end', () => {
+        clients = clients.filter(c => c !== socket);
+        log(`Client disconnected`);
+    });
+
+    // timeout
+    const interval = setInterval(() => {
+        if (Date.now() - socket.lastActivity > TIMEOUT) {
+            socket.write("Timeout\n");
+            socket.end();
+            clearInterval(interval);
+        }
+    }, 5000);
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`Server running on ${HOST}:${PORT}`);
+    log(`TCP Server running on ${HOST}:${PORT}`);
 });
+
+// ===== BROADCAST =====
+function broadcast(msg, sender) {
+    clients.forEach(c => {
+        if (c !== sender) c.write(msg + '\n');
+    });
+}
+
+// ===== COMMANDS =====
+function handleCommand(socket, input) {
+    const [cmd, ...args] = input.split(' ');
+    const arg = args.join(' ');
+
+    switch (cmd) {
+
+        case '/list':
+            fs.readdir(FILES_DIR, (err, files) => {
+                if (err) return socket.write("Error reading files\n");
+                socket.write(files.join('\n') + '\n');
+            });
+            break;
+
+        case '/read':
+            if (!arg) return socket.write("Usage: /read filename\n");
+            fs.readFile(path.join(FILES_DIR, arg), 'utf8', (err, data) => {
+                if (err) return socket.write("File not found\n");
+                socket.write(data + '\n');
+            });
+            break;
+
+        case '/delete':
+            if (socket.role !== 'admin') return socket.write("Permission denied\n");
+            fs.unlink(path.join(FILES_DIR, arg), (err) => {
+                if (err) return socket.write("Error deleting file\n");
+                socket.write("File deleted\n");
+            });
+            break;
+
+        case '/info':
+            fs.stat(path.join(FILES_DIR, arg), (err, stats) => {
+                if (err) return socket.write("File not found\n");
+                socket.write(`Size: ${stats.size}\nCreated: ${stats.birthtime}\n`);
+            });
+            break;
+
+        case '/search':
+            fs.readdir(FILES_DIR, (err, files) => {
+                if (err) return socket.write("Error\n");
+                const result = files.filter(f => f.includes(arg));
+                socket.write(result.join('\n') + '\n');
+            });
+            break;
+
+        case '/download':
+            if (!arg) return socket.write("Usage: /download filename\n");
+            fs.readFile(path.join(FILES_DIR, arg), 'utf8', (err, data) => {
+                if (err) return socket.write("File not found\n");
+                socket.write(`DOWNLOAD:${arg}|${data}\n`);
+            });
+            break;
+
+        case '/clients':
+            socket.write(`Active clients: ${clients.length}\n`);
+            break;
+
+        default:
+            socket.write("Unknown command\n");
+    }
+}
+
+module.exports = { clients, messages };
