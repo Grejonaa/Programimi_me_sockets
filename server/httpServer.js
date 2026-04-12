@@ -7,7 +7,7 @@ const server = http.createServer((req, res) => {
 
   const monitorData = {
     status: "Online",
-    active_connections: clients.lengths,
+    active_connections: clients.length,
     total_messages: messages.length,
     connected_ips: clients.map(c => c.remoteAddress),
     last_messages: messages.slice(-5)
@@ -18,6 +18,6 @@ const server = http.createServer((req, res) => {
     res.end("Per monitorin vizitoni / stats");
   }
 });
-server.listen(Port, () => {
-  console.log('[HTTP] Monitori po punon ne http:/localhost:${PORT}/stats');
+server.listen(PORT, () => {
+  console.log('[HTTP] Monitori po punon ne http:/localhost:'${PORT}/stats');
 });
