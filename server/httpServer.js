@@ -3,7 +3,7 @@ const { clients, messages } = require('./tcpServer');
 const PORT = 8080;
 const server = http.createServer((req, res) => {
   if(req.url === '/stats' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type' : 'aplication/json' });
+    res.writeHead(200, { 'Content-Type' : 'application/json' });
 
   const monitorData = {
     status: "Online",
