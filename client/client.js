@@ -9,10 +9,10 @@ client.connect(3000, '127.0.0.1', () => {
 });
 
 client.on('data', (data) => {
-  const msg = data.toString();
+  const message = data.toString();
 
-  if(msg.startsWith('DOWNLOAD:')){
-    const parts = msg.split('|');
+  if(message.startsWith('DOWNLOAD:')){
+    const parts = message.split('|');
     const filename = parts[0].replace('DOWNLOAD:', "");
     const content = parts[1];
 
@@ -21,7 +21,7 @@ client.on('data', (data) => {
     return;
   }
 
-  console.log(msg);
+  console.log(message);
 })
 
 const rl = readline.createInterface({
@@ -31,7 +31,7 @@ const rl = readline.createInterface({
 
 rl.on('line', (input) =>{
   if(input.startsWith('/uploaded')){
-    const filename = input.split('')[1];
+    const filename = input.split(' ')[1];
 
     if(!fs.existsSync(filename)){
       console.log("File not found");
@@ -39,7 +39,7 @@ rl.on('line', (input) =>{
     }
 
     const content = fs.readFileSync(filename, 'utf8');
-    client.write('UPLOAD:${filename}|${content}');
+    client.write(`UPLOAD:${filename}|${content}`);
     return;
   }
 
