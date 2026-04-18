@@ -1,28 +1,47 @@
-console.log("Client started");
+const net = require('net');
+const readline = require('readline');
+const fs = require('fs');
 
-const net = require("net");
+const client = new net.Socket();
 
-const PORT = 3000;
-const HOST = "127.0.0.1"; // ose IP e serverit
-
-const client = net.createConnection(PORT, HOST, () => {
-  console.log("Connected to server");
-
-  // dërgo një mesazh
-  client.write("Hello Server!");
+client.connect(3000, '127.0.0.1', () => {
+  console.log("Connected tp server");
 });
 
-client.on("data", (data) => {
-  console.log("Server says:", data.toString());
+client.on('data', (data) => {
+  const message = data.toString();
 
-  // mbylle lidhjen pas përgjigjes
-  client.end();
+  if(message.startsWith('DOWNLOAD:')){
+    const parts = message.split('|');
+    const filename = parts[0].replace('DOWNLOAD:', "");
+    const content = parts[1];
+
+    fs.writeFileSync(filename, content);
+    console.log("File downloaded: ", filename);
+    return;
+  }
+
+  console.log(message);
+})
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
 });
 
-client.on("end", () => {
-  console.log("Disconnected from server");
-});
+rl.on('line', (input) =>{
+  if(input.startsWith('/uploaded')){
+    const filename = input.split(' ')[1];
 
-client.on("error", (err) => {
-  console.log("Client error:", err.message);
+    if(!fs.existsSync(filename)){
+      console.log("File not found");
+      return;
+    }
+
+    const content = fs.readFileSync(filename, 'utf8');
+    client.write(`UPLOAD:${filename}|${content}`);
+    return;
+  }
+
+  client.write(input);
 });
