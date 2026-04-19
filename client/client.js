@@ -1,26 +1,62 @@
-console.log("Client started");
-
 const net = require("net");
+const readline = require("readline");
+const fs = require("fs");
 
-const PORT = 3000;
-const HOST = "127.0.0.1"; 
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
 
-const client = net.createConnection(PORT, HOST, () => {
+const client = net.createConnection(3000, "127.0.0.1", () => {
   console.log("Connected to server");
-
-  client.write("Hello Server!");
+  console.log("Set name: /name yourname");
+  rl.setPrompt("> ");
+  rl.prompt();
 });
 
 client.on("data", (data) => {
-  console.log("Server says:", data.toString());
+  const message = data.toString();
 
-  client.end();
+  process.stdout.clearLine(0);
+  process.stdout.cursorTo(0);
+
+  console.log("\nSERVER:", message);
+  rl.prompt();
+
+  if(message.startsWith("DOWNLOAD:")){
+    const parts = message.split("|");
+    const filename = parts[0].replace("DOWNLOAD:", "");
+    const content = parts.slice(1).join("|");
+
+    const path = require("path");
+    const fs = require("fs");
+
+    const savePath = path.join(__dirname, "downloads", filename);
+
+    if(!fs.existsSync(path.join(__dirname, "downloads"))){
+      fs.mkdirSync(path.join(__dirname, "downloads"));
+    }
+
+    fs.writeFileSync(savePath, content);
+    console.log("File downloaded: ", savePath);
+  }
 });
 
-client.on("end", () => {
-  console.log("Disconnected from server");
-});
+rl.on("line", (input) =>{
+  rl.prompt();
 
-client.on("error", (err) => {
-  console.log("Client error:", err.message);
+  if(input.startsWith("/upload")){
+    const filename = input.split(" ")[1];
+
+    if(!fs.existsSync(filename)){
+      console.log("File not found");
+      return;
+    }
+
+    const content = fs.readFileSync(filename, "utf8");
+    client.write(`UPLOAD:${filename}|${content}`);
+    return;
+  }
+
+  client.write(input);
 });
