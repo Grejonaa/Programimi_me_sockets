@@ -33,26 +33,24 @@ app.get('/stats', (req, res) => {
   <head>
      <title>Server Dashboard</title>
      <style>
-        body {
-            font-family: Arial;
-            background-color: white;
-            padding: 20px;
-            color: white;
-  }
-
-       .card {
-                background: #1e293b;
-                padding: 15px;
-                margin-bottom: 15px;
-                border-radius: 10px;
-            }
-
-            .msg {
-            background:#334155;
-            padding: 8px;
-            margin: 5px 0;
-            border-radius: 6px;
-            }
+         body {
+                    font-family: Arial;
+                    background: #0f172a;
+                    color: white;
+                    padding: 20px;
+                }
+                .card {
+                    background: #1e293b;
+                    padding: 15px;
+                    margin-bottom: 15px;
+                    border-radius: 10px;
+                }
+                .msg {
+                    background: #334155;
+                    padding: 6px;
+                    margin: 4px 0;
+                    border-radius: 6px;
+                }
           
           </style>
           </head>
