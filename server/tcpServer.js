@@ -1,7 +1,7 @@
 const net = require('net');
 const fs = require('fs');
 const path = require('path');
-const { exes } = require('child_process');
+const { exec } = require('child_process');
 
 const PORT = 3000;
 const HOST = '0.0.0.0';
@@ -15,10 +15,14 @@ let messages = [];
 const FILES_DIR = path.join(__dirname, '../files');
 const LOG_FILE = path.join(__dirname, '../logs/server.log');
 
+const users = {
+    "admin1" : { pass: "123", role: "admin" },
+    "user1" : { pass: "123" , role: "user" },
+    "guest1" : { pass: "123" , role: "read-only"}
+};
 
 if (!fs.existsSync(FILES_DIR)) fs.mkdirSync(FILES_DIR);
-if (!fs.existsSync(path.join(__dirname, '../logs'))) 
-fs.mkdirSync(path.join(__dirname, '../logs'));
+if (!fs.existsSync(path.join(__dirname, '../logs'))) fs.mkdirSync(path.join(__dirname, '../logs'));
 
 function log(msg) {
     const line = `[${new Date().toISOString()}] ${msg}\n`;
@@ -52,12 +56,13 @@ const server = net.createServer((socket) => {
         messages.push({ ip: socket.remoteAddress, msg: input });
 
         // upload handling
-       if (input.startsWith('UPLOAD:')) {
-           if(socket.role === 'read-only'){
-               socket.write("Permission denied (read-only)\n");
-               return;
-           }
-           
+if (input.startsWith('UPLOAD:')) {
+
+    if (socket.role === 'read-only') {
+        socket.write("Permission denied (read-only)\n");
+        return;
+    }
+
     const data = input.replace('UPLOAD:', '');
     const parts = data.split('|');
 
@@ -71,17 +76,17 @@ const server = net.createServer((socket) => {
 
     return;
 }
+     //broadcast handling
+    if (!input.startsWith('/')) {
 
-        // broadcast
-        if (!input.startsWith('/')) {
-            if(socket.role === 'read-only'){
-                socket.write("Permission denied (read-only)\n");
-                return;
-            }
-            
-            broadcast(`${socket.username}: ${input}`, socket);
-            return;
-        }
+    if (socket.role === 'read-only') {
+        socket.write("Permission denied (read-only)\n");
+        return;
+    }
+
+    broadcast(`${socket.username}: ${input}`, socket);
+    return;
+    }
 
         if (input === '/admin') {
             socket.role = 'admin';
@@ -125,17 +130,18 @@ function handleCommand(socket, input) {
 
     switch (cmd) {
         case '/login':
-            const [username, password] = args;
+          const [username, password] = args;
 
-            if(!users[username] || users[username].pass !== password) {
-                socket.write("Invalid credentials\n");
-                return;
-            }
-            socket.username = username;
-            socket.role = users[username].role;
+          if (!users[username] || users[username].pass !== password) {
+          socket.write("Invalid credentials\n");
+          return;
+          }
 
-            socket.write(`Logged in as ${username} (${socket.role})\n`);
-            break;
+          socket.username = username;
+          socket.role = users[username].role;
+
+          socket.write(`Logged in as ${username} (${socket.role})\n`);
+          break;
 
         case '/list':
             fs.readdir(FILES_DIR, (err, files) => {
@@ -193,28 +199,33 @@ function handleCommand(socket, input) {
             socket.write(`Name set to ${arg}\n`);
             break;
 
-        case '/execute':
-        //Only admin can execute commands
-            if(socket.role !== 'admin'){
-                socket.write("Permission denied\n");
-                break;
-            }
-            if(!arg){
-                socket.write("Usage: /execute commad\n");
-                break;
-            }
-            exes(arg, (error, stdout, stderr) => {
-                if(error){
-                    socket.write(`Error: ${error.message}\n`);
-                    return;
-                }
-                if(stderr){
-                    socket.write(`stderr: ${stderr}\n`);
-                    return;
-                }
-                socket.write(`Result:\n${stdout}\n"`);
-                });
-                break;
+
+     case '/execute':
+// Only admin can execute commands
+    if (socket.role !== 'admin') {
+        socket.write("Permission denied\n");
+        break;
+    }
+    if (!arg) {
+        socket.write("Usage: /execute command\n");
+        break;
+    }
+
+    exec(arg, (error, stdout, stderr) => {
+        if (error) {
+            socket.write(`Error: ${error.message}\n`);
+            return;
+        }
+
+        if (stderr) {
+            socket.write(`stderr: ${stderr}\n`);
+            return;
+        }
+
+        socket.write(`Result:\n${stdout}\n`);
+    });
+
+    break;
 
         default:
             socket.write("Unknown command\n");
