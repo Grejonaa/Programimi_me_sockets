@@ -28,34 +28,38 @@ client.on("close", () => {
 });
 
 client.on("error", (err) => {
-
+  client.on("error", (err) => {
+  console.log("[ERROR]", err.message);
+});
 });
 
 client.on("data", (data) => {
   const message = data.toString();
+
   process.stdout.clearLine(0);
   process.stdout.cursorTo(0);
 
-  console.log("\nSERVER:", message);
-  rl.prompt();
-
-  if(message.startsWith("DOWNLOAD:")){
+  if (message.startsWith("DOWNLOAD:")) {
     const parts = message.split("|");
     const filename = parts[0].replace("DOWNLOAD:", "");
     const content = parts.slice(1).join("|");
 
-    const savePath = path.join(__dirname, "downloads", filename);
-    if(!fs.existsSync(path.join(__dirname, "downloads"))){
-      fs.mkdirSync(path.join(__dirname, "downloads"));
+    const downloadDir = path.join(__dirname, "downloads");
+
+    if (!fs.existsSync(downloadDir)) {
+      fs.mkdirSync(downloadDir);
     }
 
+    const savePath = path.join(downloadDir, filename);
     fs.writeFileSync(savePath, content);
-    console.log("\n[FILE] File downloaded: ", savePath);
-  }else{
+
+    console.log(`\n[FILE] Downloaded: ${savePath}`);
+  } else {
     console.log("\nSERVER:", message);
   }
+
   rl.prompt();
-  });
+});
 }
 
 rl.on("line", (input) =>{
