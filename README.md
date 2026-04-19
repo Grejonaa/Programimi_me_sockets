@@ -3,15 +3,13 @@
 ## Description
 Ky projekt implementon një arkitekturë klient-server duke përdorur Node.js dhe protokollin TCP. Sistemi është i dizajnuar për të menaxhuar komunikimin simultan, transferimin e skedarëve dhe monitorimin e performancës në kohë reale përmes një ndërfaqeje HTTP.
 
-├── client/
-│   └── client.js       Logjika e terminalit të klientit 
-├── server/
-│   ├── tcpServer.js     Serveri kryesor(Port 1337)
-│   └── httpServer.js    Monitorimi HTTP (Port 3000)
-├── files/               Depoja e skedarëve
-├── logs/                Regjistrimi i eventeve në kohë reale
-├── package.json         Varësitë
-└── README.md            Dokumentacioni teknik
+ client -- client.js       Logjika e terminalit të klientit 
+ server -- tcpServer.js     Serveri kryesor(Port 1337)
+ server -- httpServer.js    Monitorimi HTTP (Port 3000)
+ files --              Depoja e skedarëve
+ logs --                Regjistrimi i eventeve në kohë reale
+ package.json --        Varësitë
+ README.md --           Dokumentacioni teknik
 
 ## Features
 - Multi-client TCP server (max 4 clients): Serveri menaxhon deri në 4 klientë simultanë duke përdorur asinkronizmin e Node.js, duke siguruar që asnjë klient të mos bllokojë tjetrin.
