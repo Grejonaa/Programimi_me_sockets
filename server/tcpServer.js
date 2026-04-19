@@ -212,7 +212,7 @@ function handleCommand(socket, input) {
                     socket.write(`stderr: ${stderr}\n`);
                     return;
                 }
-                socket.write(`Result:\n${stdout}\n");
+                socket.write(`Result:\n${stdout}\n"`);
                 });
                 break;
 
