@@ -57,7 +57,7 @@ app.get('/stats', (req, res) => {
           </style>
           </head>
           <body>
-          <h1>📊 Server Dashboard</h1>
+          <h1>Server Dashboard</h1>
 
         <div class="card">
             <h2>Active Clients: 
