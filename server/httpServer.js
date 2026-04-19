@@ -35,7 +35,7 @@ app.get('/stats', (req, res) => {
      <style>
         body {
             font-family: Arial;
-            background:color: white;
+            background-color: white;
             padding: 20px;
             color: white;
   }
@@ -50,7 +50,7 @@ app.get('/stats', (req, res) => {
             .msg {
             background:#334155;
             padding: 8px;
-            margin: 5px, 0;
+            margin: 5px 0;
             border-radius: 6px;
             }
           
