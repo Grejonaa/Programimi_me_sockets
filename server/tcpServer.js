@@ -6,7 +6,7 @@ const PORT = 3000;
 const HOST = '0.0.0.0';
 
 const MAX_CLIENTS = 4;
-const TIMEOUT = 30000;
+const TIMEOUT = 300000;
 
 let clients = [];
 let messages = [];
@@ -14,7 +14,7 @@ let messages = [];
 const FILES_DIR = path.join(__dirname, '../files');
 const LOG_FILE = path.join(__dirname, '../logs/server.log');
 
-// siguro që folderët ekzistojnë
+
 if (!fs.existsSync(FILES_DIR)) fs.mkdirSync(FILES_DIR);
 if (!fs.existsSync(path.join(__dirname, '../logs'))) fs.mkdirSync(path.join(__dirname, '../logs'));
 
@@ -25,6 +25,7 @@ function log(msg) {
 }
 
 const server = net.createServer((socket) => {
+    socket.username = "Guest";
 
     if (clients.length >= MAX_CLIENTS) {
         socket.write("Server full\n");
@@ -49,21 +50,24 @@ const server = net.createServer((socket) => {
         messages.push({ ip: socket.remoteAddress, msg: input });
 
         // upload handling
-        if (input.startsWith('UPLOAD:')) {
-            const parts = input.split('|');
-            const filename = parts[1];
-            const content = parts.slice(2).join('|');
+       if (input.startsWith('UPLOAD:')) {
+    const data = input.replace('UPLOAD:', '');
+    const parts = data.split('|');
 
-            fs.writeFile(path.join(FILES_DIR, filename), content, (err) => {
-                if (err) return socket.write("Upload error\n");
-                socket.write("Upload successful\n");
-            });
-            return;
-        }
+    const filename = parts[0];
+    const content = parts.slice(1).join('|');
+
+    fs.writeFile(path.join(FILES_DIR, filename), content, (err) => {
+        if (err) return socket.write("Upload error\n");
+        socket.write("Upload successful\n");
+    });
+
+    return;
+}
 
         // broadcast
         if (!input.startsWith('/')) {
-            broadcast(`${socket.remoteAddress}: ${input}`, socket);
+            broadcast(`${socket.username}: ${input}`, socket);
             return;
         }
 
@@ -157,6 +161,12 @@ function handleCommand(socket, input) {
 
         case '/clients':
             socket.write(`Active clients: ${clients.length}\n`);
+            break;
+        
+        case '/name':
+            if (!arg) return socket.write("Usage: /name yourname\n");
+            socket.username = arg;
+            socket.write(`Name set to ${arg}\n`);
             break;
 
         default:
