@@ -14,11 +14,6 @@ let messages = [];
 const FILES_DIR = path.join(__dirname, '../files');
 const LOG_FILE = path.join(__dirname, '../logs/server.log');
 
-const users = {
-    "admin1" : { pass: "123", role: "admin" },
-    "user1" : { pass: "123" , role: "user" },
-    "guest1" : { pass: "123" , role: "read-only"}
-};
 
 if (!fs.existsSync(FILES_DIR)) fs.mkdirSync(FILES_DIR);
 if (!fs.existsSync(path.join(__dirname, '../logs'))) fs.mkdirSync(path.join(__dirname, '../logs'));
